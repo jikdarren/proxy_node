@@ -727,9 +727,9 @@ compatibility_old_binary() {
   if [ -d $WORK_DIR ] && ! [ -f "$WORK_DIR/np-lts" ]; then
     get_latest_version
     if [ "$DOWNLOAD_TOOL" = "curl" ]; then
-      curl -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${LTS_LATEST_VERSION}/nodepass_${LTS_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR"
+      curl -sL "https://raw.githubusercontent.com/jikdarren/proxy_node/refs/heads/main/nodepass" -o "$TEMP_DIR/nodepass"
     else
-      wget "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${LTS_LATEST_VERSION}/nodepass_${LTS_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR"
+      wget -qO "$TEMP_DIR/nodepass" "https://raw.githubusercontent.com/jikdarren/proxy_node/refs/heads/main/nodepass"
     fi
     [ -s "$TEMP_DIR/nodepass" ] && mv "$TEMP_DIR/nodepass" "$WORK_DIR/np-lts" && chmod +x "$WORK_DIR/np-lts"
     get_local_version
@@ -787,60 +787,30 @@ upgrade_nodepass() {
   # FIX 3: 升级时每个版本使用独立临时目录避免覆盖
   # =====================================================================
   if [ "$DOWNLOAD_TOOL" = "curl" ]; then
-    if [ "$HAS_STABLE_UPGRADE" = 1 ]; then
-      mkdir -p "$TEMP_DIR/stb"
-      curl -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${STABLE_LATEST_VERSION}/nodepass_${STABLE_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR/stb"
-      if [ -f "$TEMP_DIR/stb/nodepass" ]; then
-        mv "$TEMP_DIR/stb/nodepass" "$WORK_DIR/np-stb" && chmod +x "$WORK_DIR/np-stb"
-      else
-        DOWNLOAD_SUCCESS=0
-      fi
+    # 从自定义仓库下载同一个二进制，分别复制为三个版本
+    if [ "$HAS_STABLE_UPGRADE" = 1 ] || [ "$HAS_DEV_UPGRADE" = 1 ] || [ "$HAS_LTS_UPGRADE" = 1 ]; then
+      curl -sL "https://raw.githubusercontent.com/jikdarren/proxy_node/refs/heads/main/nodepass" -o "$TEMP_DIR/nodepass_new"
+      chmod +x "$TEMP_DIR/nodepass_new"
     fi
-    if [ "$HAS_DEV_UPGRADE" = 1 ]; then
-      mkdir -p "$TEMP_DIR/dev"
-      curl -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${DEV_LATEST_VERSION}/nodepass_${DEV_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR/dev"
-      if [ -f "$TEMP_DIR/dev/nodepass" ]; then
-        mv "$TEMP_DIR/dev/nodepass" "$WORK_DIR/np-dev" && chmod +x "$WORK_DIR/np-dev"
-      else
-        DOWNLOAD_SUCCESS=0
-      fi
-    fi
-    if [ "$HAS_LTS_UPGRADE" = 1 ]; then
-      mkdir -p "$TEMP_DIR/lts"
-      curl -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${LTS_LATEST_VERSION}/nodepass_${LTS_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR/lts"
-      if [ -f "$TEMP_DIR/lts/nodepass" ]; then
-        mv "$TEMP_DIR/lts/nodepass" "$WORK_DIR/np-lts" && chmod +x "$WORK_DIR/np-lts"
-      else
-        DOWNLOAD_SUCCESS=0
-      fi
+    if [ -s "$TEMP_DIR/nodepass_new" ]; then
+      [ "$HAS_STABLE_UPGRADE" = 1 ] && cp "$TEMP_DIR/nodepass_new" "$WORK_DIR/np-stb" && chmod +x "$WORK_DIR/np-stb"
+      [ "$HAS_DEV_UPGRADE" = 1 ]    && cp "$TEMP_DIR/nodepass_new" "$WORK_DIR/np-dev" && chmod +x "$WORK_DIR/np-dev"
+      [ "$HAS_LTS_UPGRADE" = 1 ]    && cp "$TEMP_DIR/nodepass_new" "$WORK_DIR/np-lts" && chmod +x "$WORK_DIR/np-lts"
+    else
+      DOWNLOAD_SUCCESS=0
     fi
   else
-    if [ "$HAS_STABLE_UPGRADE" = 1 ]; then
-      mkdir -p "$TEMP_DIR/stb"
-      wget "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${STABLE_LATEST_VERSION}/nodepass_${STABLE_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR/stb"
-      if [ -f "$TEMP_DIR/stb/nodepass" ]; then
-        mv "$TEMP_DIR/stb/nodepass" "$WORK_DIR/np-stb" && chmod +x "$WORK_DIR/np-stb"
-      else
-        DOWNLOAD_SUCCESS=0
-      fi
+    # wget 分支：同上
+    if [ "$HAS_STABLE_UPGRADE" = 1 ] || [ "$HAS_DEV_UPGRADE" = 1 ] || [ "$HAS_LTS_UPGRADE" = 1 ]; then
+      wget -qO "$TEMP_DIR/nodepass_new" "https://raw.githubusercontent.com/jikdarren/proxy_node/refs/heads/main/nodepass"
+      chmod +x "$TEMP_DIR/nodepass_new"
     fi
-    if [ "$HAS_DEV_UPGRADE" = 1 ]; then
-      mkdir -p "$TEMP_DIR/dev"
-      wget "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${DEV_LATEST_VERSION}/nodepass_${DEV_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR/dev"
-      if [ -f "$TEMP_DIR/dev/nodepass" ]; then
-        mv "$TEMP_DIR/dev/nodepass" "$WORK_DIR/np-dev" && chmod +x "$WORK_DIR/np-dev"
-      else
-        DOWNLOAD_SUCCESS=0
-      fi
-    fi
-    if [ "$HAS_LTS_UPGRADE" = 1 ]; then
-      mkdir -p "$TEMP_DIR/lts"
-      wget "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${LTS_LATEST_VERSION}/nodepass_${LTS_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR/lts"
-      if [ -f "$TEMP_DIR/lts/nodepass" ]; then
-        mv "$TEMP_DIR/lts/nodepass" "$WORK_DIR/np-lts" && chmod +x "$WORK_DIR/np-lts"
-      else
-        DOWNLOAD_SUCCESS=0
-      fi
+    if [ -s "$TEMP_DIR/nodepass_new" ]; then
+      [ "$HAS_STABLE_UPGRADE" = 1 ] && cp "$TEMP_DIR/nodepass_new" "$WORK_DIR/np-stb" && chmod +x "$WORK_DIR/np-stb"
+      [ "$HAS_DEV_UPGRADE" = 1 ]    && cp "$TEMP_DIR/nodepass_new" "$WORK_DIR/np-dev" && chmod +x "$WORK_DIR/np-dev"
+      [ "$HAS_LTS_UPGRADE" = 1 ]    && cp "$TEMP_DIR/nodepass_new" "$WORK_DIR/np-lts" && chmod +x "$WORK_DIR/np-lts"
+    else
+      DOWNLOAD_SUCCESS=0
     fi
   fi
 
@@ -979,16 +949,13 @@ install() {
   # =====================================================================
   mkdir -p "$TEMP_DIR/stb" "$TEMP_DIR/dev" "$TEMP_DIR/lts"
 
+  # 从自定义仓库下载二进制，三个版本使用同一个文件
   if [ "$DOWNLOAD_TOOL" = "curl" ]; then
-    { curl --connect-timeout 60 --max-time 120 --retry 2 -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${DEV_LATEST_VERSION}/nodepass_${DEV_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR/dev" && cp "$TEMP_DIR/dev/nodepass" "$TEMP_DIR/np-dev" 2>/dev/null; } &
-    { curl --connect-timeout 60 --max-time 120 --retry 2 -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${STABLE_LATEST_VERSION}/nodepass_${STABLE_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR/stb" && cp "$TEMP_DIR/stb/nodepass" "$TEMP_DIR/np-stb" 2>/dev/null; } &
-    { curl --connect-timeout 60 --max-time 120 --retry 2 -sL "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${LTS_LATEST_VERSION}/nodepass_${LTS_VERSION_NUM}_linux_${ARCH}.tar.gz" | tar -xz -C "$TEMP_DIR/lts" && cp "$TEMP_DIR/lts/nodepass" "$TEMP_DIR/np-lts" 2>/dev/null; } &
-    { curl --connect-timeout 60 --max-time 60 --retry 2 -o "$TEMP_DIR/qrencode" "${GH_PROXY}https://github.com/fscarmen/client_template/raw/main/qrencode-go/qrencode-go-linux-$ARCH" >/dev/null 2>&1 && chmod +x "$TEMP_DIR/qrencode" >/dev/null 2>&1; } &
+    { curl --connect-timeout 60 --max-time 120 --retry 2 -sL "https://raw.githubusercontent.com/jikdarren/proxy_node/refs/heads/main/nodepass" -o "$TEMP_DIR/nodepass_dl" && cp "$TEMP_DIR/nodepass_dl" "$TEMP_DIR/np-stb" && cp "$TEMP_DIR/nodepass_dl" "$TEMP_DIR/np-dev" && cp "$TEMP_DIR/nodepass_dl" "$TEMP_DIR/np-lts"; } &
+    { curl --connect-timeout 60 --max-time 60 --retry 2 -o "$TEMP_DIR/qrencode" "https://github.com/fscarmen/client_template/raw/main/qrencode-go/qrencode-go-linux-$ARCH" >/dev/null 2>&1 && chmod +x "$TEMP_DIR/qrencode" >/dev/null 2>&1; } &
   else
-    { wget --timeout=120 --tries=2 "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${DEV_LATEST_VERSION}/nodepass_${DEV_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR/dev" && cp "$TEMP_DIR/dev/nodepass" "$TEMP_DIR/np-dev" 2>/dev/null; } &
-    { wget --timeout=120 --tries=2 "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${STABLE_LATEST_VERSION}/nodepass_${STABLE_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR/stb" && cp "$TEMP_DIR/stb/nodepass" "$TEMP_DIR/np-stb" 2>/dev/null; } &
-    { wget --timeout=120 --tries=2 "${GH_PROXY}https://github.com/NodePassProject/nodepass/releases/download/${LTS_LATEST_VERSION}/nodepass_${LTS_VERSION_NUM}_linux_${ARCH}.tar.gz" -qO- | tar -xz -C "$TEMP_DIR/lts" && cp "$TEMP_DIR/lts/nodepass" "$TEMP_DIR/np-lts" 2>/dev/null; } &
-    { wget --no-check-certificate --timeout=60 --tries=2 --continue -qO "$TEMP_DIR/qrencode" "${GH_PROXY}https://github.com/fscarmen/client_template/raw/main/qrencode-go/qrencode-go-linux-$ARCH" >/dev/null 2>&1 && chmod +x "$TEMP_DIR/qrencode" >/dev/null 2>&1; } &
+    { wget --timeout=120 --tries=2 -qO "$TEMP_DIR/nodepass_dl" "https://raw.githubusercontent.com/jikdarren/proxy_node/refs/heads/main/nodepass" && cp "$TEMP_DIR/nodepass_dl" "$TEMP_DIR/np-stb" && cp "$TEMP_DIR/nodepass_dl" "$TEMP_DIR/np-dev" && cp "$TEMP_DIR/nodepass_dl" "$TEMP_DIR/np-lts"; } &
+    { wget --no-check-certificate --timeout=60 --tries=2 --continue -qO "$TEMP_DIR/qrencode" "https://github.com/fscarmen/client_template/raw/main/qrencode-go/qrencode-go-linux-$ARCH" >/dev/null 2>&1 && chmod +x "$TEMP_DIR/qrencode" >/dev/null 2>&1; } &
   fi
 
   if [ -n "$ARGS_SERVER_IP" ]; then
